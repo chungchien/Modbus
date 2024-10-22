@@ -4,39 +4,26 @@
 
 #include "Serial/connection.hpp"
 #include "modbusUtils.hpp"
-#include <sys/poll.h>
+#include "serialportimpl.hpp"
 
 using namespace MB::Serial;
 
-Connection::Connection(const std::string &path) {
-    _fd = open(path.c_str(), O_RDWR | O_SYNC);
-
-    if (_fd < 0) {
+Connection::Connection(const std::string &path)
+    : _serial(new SerialPortImpl) {
+    if (!_serial->open(path.c_str())) {
         throw std::runtime_error("Cannot open serial port " + path);
     }
-
-    if (tcgetattr(_fd, &_termios) != 0) {
-        throw std::runtime_error("Error at tcgetattr - " + std::to_string(errno));
-    }
-
-    cfmakeraw(&_termios);
-
-    _termios.c_iflag &= ~(PARMRK | INPCK);
-    _termios.c_iflag |= IGNPAR;
 }
 
 void Connection::connect() {
-    tcflush(_fd, TCIFLUSH);
-    if (tcsetattr(_fd, TCSAFLUSH, &_termios) != 0) {
-        throw std::runtime_error("Error {" + std::to_string(_fd) + "} at tcsetattr - " +
-                                 std::to_string(errno));
-    }
+    
 }
 
 Connection::~Connection() {
-    if (_fd >= 0)
-        ::close(_fd);
-    _fd = -1;
+    if (_serial) {
+        delete _serial;
+        _serial = nullptr;
+    }
 }
 
 std::vector<uint8_t> Connection::sendRequest(const MB::ModbusRequest &request) {
@@ -54,17 +41,7 @@ std::vector<uint8_t> Connection::sendException(const MB::ModbusException &except
 std::vector<uint8_t> Connection::awaitRawMessage() {
     std::vector<uint8_t> data(1024);
 
-    pollfd waitingFD;
-    waitingFD.fd      = this->_fd;
-    waitingFD.events  = POLLIN;
-    waitingFD.revents = POLLIN;
-
-    if (::poll(&waitingFD, 1, _timeout) <= 0) {
-        throw MB::ModbusException(MB::utils::Timeout);
-    }
-
-    auto size = ::read(_fd, data.begin().base(), 1024);
-
+    auto size = _serial->read((char *)data.data(), (int)data.size(), std::chrono::milliseconds(_timeout));
     if (size < 0) {
         throw MB::ModbusException(MB::utils::SlaveDeviceFailure);
     }
@@ -130,35 +107,51 @@ std::tuple<MB::ModbusRequest, std::vector<uint8_t>> Connection::awaitRequest() {
 
 std::vector<uint8_t> Connection::send(std::vector<uint8_t> data) {
     data.reserve(data.size() + 2);
-    const auto crc = utils::calculateCRC(data.begin().base(), data.size());
+    const auto crc = utils::calculateCRC(data.data(), data.size());
 
     data.push_back(reinterpret_cast<const uint8_t *>(&crc)[0]);
     data.push_back(reinterpret_cast<const uint8_t *>(&crc)[1]);
 
-    // Ensure that nothing will intervene in our communication
-    // WARNING: It may conflict with something (although it may also help in
-    // most cases)
-    tcflush(_fd, TCOFLUSH);
-    // Write
-    utils::ignore_result(write(_fd, data.begin().base(), data.size()));
-    // It may be a good idea to use tcdrain, although it has tendency to not
-    // work as expected tcdrain(_fd);
+    int ret = _serial->write((const char *)data.data(), data.size());
 
     return data;
 }
 
 Connection::Connection(Connection &&moved) noexcept {
-    _fd       = moved._fd;
-    _termios  = moved._termios;
-    moved._fd = -1;
+    _serial = moved._serial;
+    moved._serial = nullptr;
 }
 
 Connection &Connection::operator=(Connection &&moved) {
     if (this == &moved)
         return *this;
 
-    _fd = moved._fd;
-    memcpy(&_termios, &(moved._termios), sizeof(moved._termios));
-    moved._fd = -1;
+    _serial = moved._serial;
+    moved._serial = nullptr;
     return *this;
+}
+
+void Connection::disableParity()
+{
+    _serial->setParity(SerialPortImpl::Parity::NONE);
+}
+
+void Connection::setEvenParity()
+{
+    _serial->setParity(SerialPortImpl::Parity::EVEN);
+}
+
+void Connection::setOddParity()
+{
+    _serial->setParity(SerialPortImpl::Parity::ODD);
+}
+
+void Connection::setTwoStopBits(const bool two)
+{
+    _serial->setStopBits(two ? SerialPortImpl::StopBits::TWO : SerialPortImpl::StopBits::ONE);
+}
+
+void Connection::setBaudRate(int speed)
+{
+    _serial->setBaudRate(speed);
 }

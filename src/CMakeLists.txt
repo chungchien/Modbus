@@ -23,8 +23,10 @@ target_include_directories(Modbus_Core PUBLIC ${PROJECT_SOURCE_DIR}/include PRIV
 add_library(Modbus INTERFACE)
 target_link_libraries(Modbus INTERFACE Modbus_Core)
 
-if(MODBUS_SERIAL_COMMUNICATION)
-    message(STATUS "Enabling Modbus Serial")
+
+if(MODBUS_COMMUNICATION)
+    message("Modbus communication is experimental")
+    # add_subdirectory(TCP)
     add_subdirectory(Serial)
     target_link_libraries(Modbus INTERFACE Modbus_Serial)
 endif()
