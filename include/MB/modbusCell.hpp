@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <string>
 #include <variant>
+#include <string>
 
 /**
  * Namespace that contains whole project

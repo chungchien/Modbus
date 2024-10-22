@@ -18,3 +18,8 @@ add_executable(Google_Tests_run ${TestFiles})
 
 target_link_libraries(Google_Tests_run Modbus_Core)
 target_link_libraries(Google_Tests_run gtest gtest_main)
+
+include(GoogleTest)
+gtest_discover_tests(Google_Tests_run)
+
+# add_test(NAME Google_Tests_run COMMAND Google_Tests_run)

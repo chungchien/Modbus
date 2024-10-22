@@ -4,16 +4,17 @@ project(modbus)
 set(CMAKE_CXX_STANDARD 17)
 
 if (MSVC)
-    add_compile_options(/W3 /MT)
-    # Otherwise, MSVC complains about strncopy
-    add_definitions(-D_CRT_SECURE_NO_WARNINGS)
+    add_compile_options(/W3)
+    add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
+    set(CMAKE_CXX_FLAGS_DEBUG "/MTd /Zi /Ob0 /Od /RTC1")
+    set(CMAKE_CXX_FLAGS_RELEASE "/MT /O2 /Ob2 /DNDEBUG")
 else()
     add_compile_options(-Wall -Wextra -Werror -pedantic)
 endif()
 
 option(MODBUS_EXAMPLE "Build example program" OFF)
 option(MODBUS_TESTS "Build tests" OFF)
-option(MODBUS_TCP_COMMUNICATION "Use Modbus TCP communication library" ON)
+option(MODBUS_TCP_COMMUNICATION "Use Modbus TCP communication library" OFF)
 
 if(NOT win32)
     # Serial not supported on Windows
