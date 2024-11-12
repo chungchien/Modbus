@@ -6,6 +6,7 @@ set(CORE_HEADER_FILES ${MODBUS_HEADER_FILES_DIR}/modbusCell.hpp
         ${MODBUS_HEADER_FILES_DIR}/modbusRequest.hpp
         ${MODBUS_HEADER_FILES_DIR}/modbusResponse.hpp
         ${MODBUS_HEADER_FILES_DIR}/modbusUtils.hpp
+        ${MODBUS_HEADER_FILES_DIR}/modbusLog.hpp
         ${MODBUS_HEADER_FILES_DIR}/crc.hpp
         )
 
@@ -13,6 +14,7 @@ set(CORE_SOURCE_FILES
     modbusException.cpp
     modbusRequest.cpp
     modbusResponse.cpp
+    modbusLog.cpp
     crc.cpp
 )
 

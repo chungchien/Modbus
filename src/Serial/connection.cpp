@@ -4,7 +4,7 @@
 
 #include "Serial/connection.hpp"
 #include "modbusUtils.hpp"
-#include "zjlog.h"
+#include "modbusLog.hpp"
 #include "serialportimpl.hpp"
 
 using namespace MB::Serial;
@@ -122,7 +122,7 @@ std::vector<uint8_t> Connection::send(std::vector<uint8_t> data) {
     data.push_back(reinterpret_cast<const uint8_t *>(&crc)[0]);
     data.push_back(reinterpret_cast<const uint8_t *>(&crc)[1]);
 
-    int nwriten = _impl->write(data.data(), data.size());
+    int nwriten = _impl->write(data.data(), (int)data.size());
     if (nwriten != data.size()) {
         throw std::runtime_error("Failed to send data");
     }

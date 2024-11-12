@@ -5,7 +5,7 @@
 #include <chrono>
 #include <boost/asio/error.hpp>
 #include "serialportimpl.hpp"
-#include "zjlog.h"
+#include "modbusLog.hpp"
 #ifdef WIN32
 #include <windows.h>
 #endif

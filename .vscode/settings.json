@@ -7,6 +7,7 @@
     },
 
     "files.associations": {
+        "*.bin": "code-text-binary",
         "iterator": "cpp",
         "memory": "cpp",
         "ranges": "cpp",
@@ -89,6 +90,7 @@
         "xtr1common": "cpp",
         "xtree": "cpp",
         "*.tcc": "cpp",
-        "string_view": "cpp"
+        "string_view": "cpp",
+        "cstdarg": "cpp"
     }
 }
