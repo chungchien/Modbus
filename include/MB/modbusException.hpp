@@ -88,8 +88,11 @@ class ModbusException : public std::exception {
         const std::size_t MAX_STRING_SIZE = 1024;
         static char str[MAX_STRING_SIZE];
         auto originalStr = toString();
-        std::strncpy(str, originalStr.c_str(),
-                     std::min(originalStr.size(), MAX_STRING_SIZE));
+        size_t n = originalStr.size();
+        if (n > MAX_STRING_SIZE) {
+            n = MAX_STRING_SIZE;
+        }
+        std::strncpy(str, originalStr.c_str(), n);
         return str;
     }
 

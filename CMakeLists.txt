@@ -31,5 +31,5 @@ endif()
 
 if(MODBUS_EXAMPLE)
     add_executable(ex example/main.cpp)
-    target_link_libraries(ex PUBLIC Modbus_Core)
+    target_link_libraries(ex PUBLIC Modbus_Core Modbus_Serial)
 endif()
