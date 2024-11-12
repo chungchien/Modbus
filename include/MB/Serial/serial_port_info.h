@@ -3,7 +3,6 @@
 #include <string>
 #include <vector>
 #include <cstdint>
-#include "hc30comm_exports.h"
 
 struct SerialPortInfo {
     std::string port;

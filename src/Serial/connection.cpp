@@ -4,25 +4,30 @@
 
 #include "Serial/connection.hpp"
 #include "modbusUtils.hpp"
+#include "zjlog.h"
 #include "serialportimpl.hpp"
 
 using namespace MB::Serial;
 
-Connection::Connection(const std::string &path)
-    : _serial(new SerialPortImpl) {
-    if (!_serial->open(path.c_str())) {
-        throw std::runtime_error("Cannot open serial port " + path);
-    }
+Connection::Connection()
+    : _impl{new SerialPortImpl}
+{
 }
 
-void Connection::connect() {
-    
+void Connection::connect(const std::string &path) {
+    if (!_impl->open(path.c_str())) {
+        throw std::runtime_error("Cannot open serial port " + path);
+    }
+    _impl->setBaudRate(115200);
+    _impl->setDataBits(8);
+    _impl->setParity(static_cast<SerialPortImpl::Parity>(NOPARITY));
+    _impl->setStopBits(static_cast<SerialPortImpl::StopBits>(ONESTOPBIT));
+    _impl->setFlowControl(SerialPortImpl::FlowControl::NONE);
 }
 
 Connection::~Connection() {
-    if (_serial) {
-        delete _serial;
-        _serial = nullptr;
+    if (_impl->isOpen()) {
+        _impl->close();
     }
 }
 
@@ -40,13 +45,18 @@ std::vector<uint8_t> Connection::sendException(const MB::ModbusException &except
 
 std::vector<uint8_t> Connection::awaitRawMessage() {
     std::vector<uint8_t> data(1024);
-
-    auto size = _serial->read((char *)data.data(), (int)data.size(), std::chrono::milliseconds(_timeout));
-    if (size < 0) {
-        throw MB::ModbusException(MB::utils::SlaveDeviceFailure);
+    if (!_impl->isOpen()) {
+        throw MB::ModbusException(MB::utils::ConnectionClosed);
     }
 
-    data.resize(size);
+    int number_of_bytes_read = _impl->read((void *)data.data(), static_cast<int>(data.size()), SerialPortImpl::milliseconds(_timeout));
+    if (number_of_bytes_read < 0) {
+        throw std::runtime_error("Error while reading from serial port");
+    }
+    if (number_of_bytes_read == 0) {
+        throw MB::ModbusException(MB::utils::Timeout);
+    }
+    data.resize(number_of_bytes_read);
     data.shrink_to_fit();
 
     return data;
@@ -112,46 +122,56 @@ std::vector<uint8_t> Connection::send(std::vector<uint8_t> data) {
     data.push_back(reinterpret_cast<const uint8_t *>(&crc)[0]);
     data.push_back(reinterpret_cast<const uint8_t *>(&crc)[1]);
 
-    int ret = _serial->write((const char *)data.data(), data.size());
+    int nwriten = _impl->write(data.data(), data.size());
+    if (nwriten != data.size()) {
+        throw std::runtime_error("Failed to send data");
+    }
 
     return data;
 }
 
 Connection::Connection(Connection &&moved) noexcept {
-    _serial = moved._serial;
-    moved._serial = nullptr;
+    _impl = moved._impl;
+    moved._impl = nullptr;
+    _timeout = moved._timeout;
 }
 
 Connection &Connection::operator=(Connection &&moved) {
     if (this == &moved)
         return *this;
 
-    _serial = moved._serial;
-    moved._serial = nullptr;
+    _impl = moved._impl;
+    moved._impl = NULL;
+    _timeout = moved._timeout;
     return *this;
 }
 
-void Connection::disableParity()
+
+    
+void Connection::setParity(Parity parity)
 {
-    _serial->setParity(SerialPortImpl::Parity::NONE);
+    if (!_impl->setParity(static_cast<SerialPortImpl::Parity>(parity))) {
+        throw std::runtime_error("Failed to set comm state");
+    }
 }
 
-void Connection::setEvenParity()
+void Connection::setStopBits(StopBits stopBits)
 {
-    _serial->setParity(SerialPortImpl::Parity::EVEN);
+    if (!_impl->setStopBits(static_cast<SerialPortImpl::StopBits>(stopBits))) {
+        throw std::runtime_error("Failed to set comm state");
+    }
 }
 
-void Connection::setOddParity()
+void Connection::setDataBits(int dataBits)
 {
-    _serial->setParity(SerialPortImpl::Parity::ODD);
+    if (!_impl->setDataBits(dataBits)) {
+        throw std::runtime_error("Failed to set comm state");
+    }
 }
 
-void Connection::setTwoStopBits(const bool two)
+void Connection::setBaudRate(uint32_t speed)
 {
-    _serial->setStopBits(two ? SerialPortImpl::StopBits::TWO : SerialPortImpl::StopBits::ONE);
-}
-
-void Connection::setBaudRate(int speed)
-{
-    _serial->setBaudRate(speed);
+    if (!_impl->setBaudRate(speed)) {
+        throw std::runtime_error("Failed to set comm state");
+    }
 }

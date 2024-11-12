@@ -52,10 +52,13 @@ public:
     bool setFlowControl(FlowControl flowControl);
     void close();
     bool isOpen() const;
-    int write(const char* data, int length);
-    int read(char* buffer, int length, milliseconds timeout=milliseconds::max());
-    int readLine(char* buffer, int length, milliseconds timeout=milliseconds::max());
+    int write(const void* data, int length);
+    int read(void* buffer, int length, milliseconds timeout=milliseconds(-1));
+    int readLine(char* buffer, int length, milliseconds timeout=milliseconds(-1));
     void clearInputs();
+    void flush();
+    void clearRxBuffer();
+    void clearTxBuffer();
 
 private:
     void onReceived(const boost::system::error_code &ec, size_t bytes_transferred);
@@ -69,6 +72,5 @@ private:
     char m_one_byte_buffer[1]; // 1个字节缓存
     size_t m_num_bytes_required = 0;
     boost::system::error_code m_rd_error;
-
 };
 }

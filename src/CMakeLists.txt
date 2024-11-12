@@ -28,11 +28,8 @@ if(MODBUS_COMMUNICATION)
     message("Modbus communication is experimental")
     # add_subdirectory(TCP)
     add_subdirectory(Serial)
-    target_link_libraries(Modbus INTERFACE Modbus_Serial)
-endif()
-
-if(MODBUS_TCP_COMMUNICATION)
-    message(STATUS "Enabling Modbus Serial")
-    add_subdirectory(TCP)
-    target_link_libraries(Modbus INTERFACE Modbus_TCP)
+    target_link_libraries(Modbus INTERFACE 
+        # Modbus_TCP
+        Modbus_Serial
+    )
 endif()

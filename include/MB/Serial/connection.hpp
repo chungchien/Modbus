@@ -4,6 +4,8 @@
 
 #pragma once
 
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -22,21 +24,39 @@ class SerialPortImpl;
 class Connection {
   public:
     // Pretty high timeout
-    static const unsigned int DefaultSerialTimeout = 100;
+    static const unsigned int DefaultSerialTimeout = 1000;
 
   private:
-    SerialPortImpl *_serial = nullptr;
+    SerialPortImpl *_impl = nullptr;
     int _timeout = Connection::DefaultSerialTimeout;
 
   public:
+    enum class Parity {
+        None,
+        Even,
+        Odd
+    };
+
+    enum class StopBits {
+        One,
+        OnePointFive,
+        Two
+    };
+
+    enum class FlowControl {
+        None,
+        Hardware,
+        Software
+    };
+
+
     explicit Connection();
-    explicit Connection(const std::string &path);
     explicit Connection(const Connection &) = delete;
     explicit Connection(Connection &&) noexcept;
     Connection &operator=(Connection &&);
     ~Connection();
 
-    void connect();
+    void connect(const std::string &path);
 
     std::vector<uint8_t> sendRequest(const MB::ModbusRequest &request);
     std::vector<uint8_t> sendResponse(const MB::ModbusResponse &response);
@@ -55,15 +75,13 @@ class Connection {
 
     [[nodiscard]] std::vector<uint8_t> awaitRawMessage();
 
-    void disableParity();
+    void setParity(Parity parity);
 
-    void setEvenParity();
+    void setStopBits(StopBits stopBits);
 
-    void setOddParity();
+    void setDataBits(int dataBits);
 
-    void setTwoStopBits(const bool two);
-
-    void setBaudRate(int speed);
+    void setBaudRate(uint32_t speed);
 
     int getTimeout() const { return _timeout; }
 
