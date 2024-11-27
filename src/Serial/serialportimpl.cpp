@@ -77,7 +77,7 @@ bool SerialPortImpl::open(const char *portName) {
 		// 创建线程，用于异步读取数据
 		m_thread = std::thread([this]() {
 			m_io_context.run();
-			LOG_ERROR(TAG, "io_context stopped");
+			LogError(TAG, "io_context stopped");
 		});
 		return true;
 	}
@@ -89,12 +89,12 @@ void SerialPortImpl::close() {
 		boost::system::error_code ec;
 		m_serial_port.close(ec);
 		if (ec != boost::system::errc::success) {
-			LOG_ERROR(TAG, "close error: %s", ec.what().c_str());
+			LogError(TAG, "close error: %s", ec.what().c_str());
 		}
-		LOG_DEBUG(TAG, "waiting thread to join ...");
+		LogDebug(TAG, "waiting thread to join ...");
 		m_thread.join();
-		LOG_DEBUG(TAG, "thread joined");
-		LOG_DEBUG(TAG, "serial port closed");
+		LogDebug(TAG, "thread joined");
+		LogDebug(TAG, "serial port closed");
 	}
 }
 
@@ -106,7 +106,7 @@ int SerialPortImpl::write(const void *data, int length) {
 	boost::system::error_code ec;
     size_t n = m_serial_port.write_some(boost::asio::buffer(data, length), ec);
 	if (ec != boost::system::errc::success) {
-		LOG_ERROR(TAG, "write error: %s", ec.what());
+		LogError(TAG, "write error: %s", ec.what());
 		return -1;
 	}
 	flush();
@@ -127,7 +127,7 @@ int SerialPortImpl::read(void *buffer, int length, milliseconds timeout) {
 			if (n > m_num_bytes_required) {
 				n = m_num_bytes_required;
 			}
-			LOG_INFO(TAG, "read %d bytes", n);
+			LogInfo(TAG, "read %d bytes", n);
 
 			std::copy(m_buffer.begin(), m_buffer.begin() + n, (char *)buffer + num_bytes_read);
 			m_buffer.erase_begin(n);
@@ -142,7 +142,7 @@ int SerialPortImpl::read(void *buffer, int length, milliseconds timeout) {
             break;
         }
 		if (m_cond.wait_until(lock, tp) == std::cv_status::timeout) {
-			LOG_INFO(TAG, "read timeout");
+			LogInfo(TAG, "read timeout");
 		}
     }
 
@@ -190,7 +190,7 @@ int SerialPortImpl::readLine(char *buffer, int size, milliseconds timeout) {
 
         m_num_bytes_required = SIZE_MAX; // 读取到换行符为止
 		if (m_cond.wait_until(lock, tp) == std::cv_status::timeout) {
-			LOG_INFO(TAG, "read timeout");
+			LogInfo(TAG, "read timeout");
 		}
 	}
 	m_num_bytes_required = 0;
@@ -232,7 +232,7 @@ void SerialPortImpl::onReceived(const boost::system::error_code &ec,
 			std::bind(&SerialPortImpl::onReceived, this, std::placeholders::_1, std::placeholders::_2));
 	} 
 	else if (ec.value() != boost::asio::error::operation_aborted) {
-		LOG_ERROR(TAG, "serial port read error: %s (catage: %s, value: %d)", ec.message().c_str(),
+		LogError(TAG, "serial port read error: %s (catage: %s, value: %d)", ec.message().c_str(),
 			ec.category().name(), ec.value());
 		// 重启读取
 		m_serial_port.async_read_some(boost::asio::buffer(m_one_byte_buffer, 1),
